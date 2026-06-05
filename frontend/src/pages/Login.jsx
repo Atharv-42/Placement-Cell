@@ -22,6 +22,7 @@ function Login() {
         password,
       });
 
+      localStorage.setItem("token", "authenticated");
       localStorage.setItem("userRole", response.data.role);
 
       if (response.data.role === "student") {

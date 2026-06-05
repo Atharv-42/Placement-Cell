@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Jobs from "./pages/Jobs";
 
 import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -21,10 +22,38 @@ function App() {
 
         {/* Routes with Navbar */}
         <Route element={<Layout />}>
-          <Route path="/student" element={<StudentDashboard />} />
-          <Route path="/company" element={<CompanyDashboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/jobs" element={<Jobs />} />
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute>
+            <StudentDashboard />
+            </ProtectedRoute>
+          }
+          />
+          <Route
+            path="/company"
+            element={
+              <ProtectedRoute>
+                <CompanyDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute>
+                <Jobs />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
       </Routes>
