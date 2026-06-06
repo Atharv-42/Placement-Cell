@@ -102,6 +102,11 @@ function StudentDashboard() {
     return statusCounts;
   }, [applications]);
 
+  const companyDecisions = useMemo(
+    () => applications.filter((application) => ["Shortlisted", "Selected"].includes(application.status)),
+    [applications]
+  );
+
   const handleProfileChange = (event) => {
     const { name, value } = event.target;
     setProfile((current) => ({
@@ -378,7 +383,7 @@ function StudentDashboard() {
                       <td>{application.jobId?.title || "Job"}</td>
                       <td>{application.jobId?.companyId?.name || application.companyId?.name || "Company"}</td>
                       <td>
-                        <span className={`status-pill status-pill--${application.status === "Selected" ? "success" : application.status === "Rejected" ? "danger" : "muted"}`}>
+                        <span className={`status-pill status-pill--${application.status === "Selected" ? "success" : application.status === "Rejected" ? "danger" : application.status === "Shortlisted" ? "warning" : "muted"}`}>
                           {application.status}
                         </span>
                       </td>
@@ -388,6 +393,26 @@ function StudentDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="decision-list">
+            {companyDecisions.length === 0 ? (
+              <div className="empty-state empty-state--compact">
+                <p>No shortlist or selection updates yet.</p>
+              </div>
+            ) : (
+              companyDecisions.map((application) => (
+                <article className="decision-card" key={application._id}>
+                  <div>
+                    <strong>{application.jobId?.title || "Job"}</strong>
+                    <span>{application.jobId?.companyId?.name || application.companyId?.name || "Company"}</span>
+                  </div>
+                  <span className={`status-pill status-pill--${application.status === "Selected" ? "success" : "warning"}`}>
+                    {application.status}
+                  </span>
+                </article>
+              ))
+            )}
           </div>
         </section>
       </section>

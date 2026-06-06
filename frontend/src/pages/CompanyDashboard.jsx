@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../services/api";
 import LoadingState from "../components/LoadingState";
 import JobCard from "../components/JobCard";
@@ -32,6 +32,7 @@ function CompanyDashboard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const jobFormRef = useRef(null);
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -78,6 +79,8 @@ function CompanyDashboard() {
     return Object.entries(grouped).map(([label, total]) => ({ label, total }));
   }, [applications]);
 
+  const visibleApplicants = reviewJob ? applicants : applications;
+
   const handleJobChange = (event) => {
     const { name, value } = event.target;
     setJobForm((current) => ({
@@ -104,6 +107,12 @@ function CompanyDashboard() {
       skills: Array.isArray(job.skills) ? job.skills.join(", ") : "",
       deadline: job.deadline ? new Date(job.deadline).toISOString().slice(0, 10) : "",
       status: job.status || "active"
+    });
+    setMessage(`Editing ${job.title}. Update the details in the form above.`);
+
+    window.requestAnimationFrame(() => {
+      jobFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      jobFormRef.current?.querySelector("input[name='title']")?.focus();
     });
   };
 
@@ -173,7 +182,9 @@ function CompanyDashboard() {
       await API.put(`/applications/${application._id}`, {
         status: nextStatus
       });
-      await handleApplicants(application.jobId);
+      if (reviewJob) {
+        await handleApplicants(reviewJob);
+      }
       await loadDashboard();
     } catch (error) {
       setMessage(error.response?.data?.message || "Unable to update applicant");
@@ -208,24 +219,28 @@ function CompanyDashboard() {
       {message && <div className="alert">{message}</div>}
 
       <section className="content-grid content-grid--two">
-        <form className="panel" onSubmit={handleSubmitJob}>
+        <form className="panel job-editor-panel" ref={jobFormRef} onSubmit={handleSubmitJob}>
           <div className="section-heading">
             <h3>{editingJob ? "Edit job" : "Post a new job"}</h3>
-            <p>Manage role details and activation status.</p>
+            <p>
+              {editingJob
+                ? `Updating ${editingJob.title}. Save changes when you are done.`
+                : "Manage role details and activation status."}
+            </p>
           </div>
 
           <div className="form-grid">
             {[
-              ["title", "Title"],
-              ["role", "Role"],
-              ["location", "Location"],
-              ["package", "Package"],
-              ["packageText", "Package text"],
-              ["eligibility", "Eligibility"]
-            ].map(([name, label]) => (
+              ["title", "Title", "text"],
+              ["role", "Role", "text"],
+              ["location", "Location", "text"],
+              ["package", "Package", "number"],
+              ["packageText", "Package text", "text"],
+              ["eligibility", "Eligibility", "text"]
+            ].map(([name, label, type]) => (
               <label className="field" key={name}>
                 <span>{label}</span>
-                <input name={name} value={jobForm[name]} onChange={handleJobChange} />
+                <input name={name} type={type} value={jobForm[name]} onChange={handleJobChange} />
               </label>
             ))}
 
@@ -263,7 +278,7 @@ function CompanyDashboard() {
               {saving ? "Saving..." : editingJob ? "Update job" : "Post job"}
               </button>
             <button type="button" className="btn btn--secondary" onClick={resetForm}>
-              Clear form
+              {editingJob ? "Cancel edit" : "Clear form"}
             </button>
           </div>
         </form>
@@ -330,8 +345,16 @@ function CompanyDashboard() {
       <section className="panel">
         <div className="section-heading">
           <h3>Applicant review</h3>
-              <p>Shortlist candidates and update their screening state.</p>
+              <p>See applied students and update their hiring status.</p>
               {reviewJob && <p className="muted">Reviewing applicants for {reviewJob.title}</p>}
+              {reviewJob && (
+                <button type="button" className="text-button" onClick={() => {
+                  setReviewJob(null);
+                  setApplicants([]);
+                }}>
+                  Show all applicants
+                </button>
+              )}
             </div>
 
         <div className="table-wrap">
@@ -346,30 +369,31 @@ function CompanyDashboard() {
               </tr>
             </thead>
             <tbody>
-              {applicants.length === 0 ? (
+              {visibleApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan="5">Select a job to view applicants.</td>
+                  <td colSpan="5">No students have applied yet.</td>
                 </tr>
               ) : (
-                applicants.map((application) => (
+                visibleApplicants.map((application) => (
                   <tr key={application._id}>
-                    <td>{application.studentId?.name || "Candidate"}</td>
+                    <td>
+                      <strong>{application.studentId?.name || "Candidate"}</strong>
+                      <span className="table-subtext">{application.studentId?.email || "Email not available"}</span>
+                    </td>
                     <td>{application.jobId?.title || "Job"}</td>
-                    <td>{application.status}</td>
+                    <td>
+                      <span className={`status-pill status-pill--${application.status === "Selected" ? "success" : application.status === "Rejected" ? "danger" : application.status === "Shortlisted" ? "warning" : "muted"}`}>
+                        {application.status}
+                      </span>
+                    </td>
                     <td>{formatDate(application.appliedDate || application.createdAt)}</td>
                     <td>
                       <div className="inline-actions">
-                        <button type="button" className="btn btn--secondary" onClick={() => handleShortlist(application)}>
+                        <button type="button" className="btn btn--secondary" onClick={() => handleShortlist(application)} disabled={application.status === "Shortlisted"}>
                           Shortlist
                         </button>
-                        <button type="button" className="btn btn--secondary" onClick={() => handleShortlist(application, "Interview Scheduled")}>
-                          Interview
-                        </button>
-                        <button type="button" className="btn btn--secondary" onClick={() => handleShortlist(application, "Selected")}>
+                        <button type="button" className="btn btn--primary" onClick={() => handleShortlist(application, "Selected")} disabled={application.status === "Selected"}>
                           Select
-                        </button>
-                        <button type="button" className="btn btn--danger" onClick={() => handleShortlist(application, "Rejected")}>
-                          Reject
                         </button>
                       </div>
                     </td>
