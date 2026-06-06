@@ -1,17 +1,22 @@
-import { Link } from "react-router-dom";
+import ProfileDropdown from "./ProfileDropdown";
 
-function Navbar() {
+function Navbar({ title, onMenuToggle }) {
   return (
-    <nav>
-      <h2>Placement Portal</h2>
+    <header className="topbar">
+      <div className="topbar__left">
+        <button type="button" className="icon-button" onClick={onMenuToggle} aria-label="Toggle navigation">
+          <span aria-hidden="true">○</span>
+        </button>
+        <div>
+          <p className="topbar__eyebrow">Placement Cell Portal</p>
+          <h1>{title}</h1>
+        </div>
+      </div>
 
-      <Link to="/">Login</Link>
-      <Link to="/register">Register</Link>
-      <Link to="/student">Student</Link>
-      <Link to="/company">Company</Link>
-      <Link to="/admin">Admin</Link>
-      <Link to="/jobs">Jobs</Link>
-    </nav>
+      <div className="topbar__actions">
+        <ProfileDropdown />
+      </div>
+    </header>
   );
 }
 

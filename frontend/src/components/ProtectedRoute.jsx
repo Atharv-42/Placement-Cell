@@ -1,21 +1,30 @@
-import {
- Navigate
-}
-from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import LoadingState from "./LoadingState";
 
-function ProtectedRoute(
- { children }
-) {
+const roleHome = {
+  student: "/student",
+  company: "/company",
+  admin: "/admin"
+};
 
- const token =
- localStorage.getItem(
-  "token"
- );
+function ProtectedRoute({ children, roles }) {
+  const { user, loading, token } = useAuth();
+  const location = useLocation();
 
- return token
- ? children
- : <Navigate to="/" />;
+  if (loading) {
+    return <LoadingState label="Loading portal" />;
+  }
 
+  if (!token || !user) {
+    return <Navigate to="/" replace state={{ from: location }} />;
+  }
+
+  if (roles?.length && !roles.includes(user.role)) {
+    return <Navigate to={roleHome[user.role] || "/jobs"} replace />;
+  }
+
+  return children;
 }
 
 export default ProtectedRoute;

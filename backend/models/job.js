@@ -7,15 +7,36 @@ const jobSchema = new mongoose.Schema(
       required: true
     },
 
-    skills: [String],
+    role: String,
 
-    package: Number,
-
-    deadline: Date,
+    description: String,
 
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company"
+      ref: "Company",
+      required: true
+    },
+
+    companyName: String,
+
+    companyLogo: String,
+
+    location: String,
+
+    package: Number,
+
+    packageText: String,
+
+    eligibility: String,
+
+    skills: [String],
+
+    deadline: Date,
+
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active"
     }
   },
   {

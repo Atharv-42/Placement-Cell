@@ -2,63 +2,61 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/Register.css";
 import API from "../services/api";
+import { useAuth } from "../context/AuthContext";
+
+const initialState = {
+  name: "",
+  email: "",
+  password: "",
+  role: "student"
+};
 
 function Register() {
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "student",
-  });
+  const { login } = useAuth();
+  const [formData, setFormData] = useState(initialState);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData((current) => ({
+      ...current,
+      [e.target.name]: e.target.value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
-      const response = await API.post(
-        "/auth/register",
-        formData
-      );
-
-      alert("Registration Successful");
-
-      console.log(response.data);
-
-      navigate("/");
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-        "Registration Failed"
-      );
+      const response = await API.post("/auth/register", formData);
+      login({
+        token: response.data.token,
+        user: response.data.user
+      });
+      navigate(response.data.user.role === "company" ? "/company" : response.data.user.role === "admin" ? "/admin" : "/student", {
+        replace: true
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="register-page">
       <div className="register-card">
-
         <div className="register-header">
-          <h1>Create Account</h1>
-          <p>Join Placement Portal</p>
+          <p className="eyebrow">Create account</p>
+          <h1>Join the portal</h1>
         </div>
 
-        <form
-          className="register-form"
-          onSubmit={handleSubmit}
-        >
-
-          <div className="input-group">
-            <label>Full Name</label>
-
+        <form className="register-form" onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Full name</span>
             <input
               type="text"
               name="name"
@@ -67,11 +65,10 @@ function Register() {
               onChange={handleChange}
               required
             />
-          </div>
+          </label>
 
-          <div className="input-group">
-            <label>Email</label>
-
+          <label className="field">
+            <span>Email</span>
             <input
               type="email"
               name="email"
@@ -80,55 +77,39 @@ function Register() {
               onChange={handleChange}
               required
             />
-          </div>
+          </label>
 
-          <div className="input-group">
-            <label>Password</label>
-
+          <label className="field">
+            <span>Password</span>
             <input
               type="password"
               name="password"
               placeholder="Create password"
               value={formData.password}
               onChange={handleChange}
+              minLength={6}
               required
             />
-          </div>
+          </label>
 
-          <div className="input-group">
-            <label>Role</label>
-
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-            >
-              <option value="student">
-                Student
-              </option>
-
-              <option value="company">
-                Company
-              </option>
+          <label className="field">
+            <span>Role</span>
+            <select name="role" value={formData.role} onChange={handleChange}>
+              <option value="student">Student</option>
+              <option value="company">Company</option>
             </select>
-          </div>
+          </label>
 
-          <button
-            type="submit"
-            className="register-btn"
-          >
-            Create Account
+          {error && <div className="alert alert--error">{error}</div>}
+
+          <button type="submit" className="btn btn--primary btn--full" disabled={loading}>
+            {loading ? "Creating account..." : "Create account"}
           </button>
-
         </form>
 
-        <div className="register-footer">
-          <p>
-            Already have an account?
-            <Link to="/"> Login</Link>
-          </p>
-        </div>
-
+        <p className="auth-footer">
+          Already have an account? <Link to="/">Login</Link>
+        </p>
       </div>
     </div>
   );
