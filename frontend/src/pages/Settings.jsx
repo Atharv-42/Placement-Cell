@@ -54,7 +54,6 @@ function Settings() {
       <form className="panel" onSubmit={handleSave}>
         <div className="toggle-list">
           {[
-            ["emailAlerts", "Email alerts"],
             ["statusUpdates", "Application status updates"],
             ["darkSummary", "Compact dashboard summary"]
           ].map(([name, label]) => (

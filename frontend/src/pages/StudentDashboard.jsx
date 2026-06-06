@@ -447,15 +447,6 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <section className="panel panel--link">
-        <div>
-          <p className="eyebrow">Need a cleaner view?</p>
-          <h3>Open the dedicated jobs board for a focused search flow.</h3>
-        </div>
-        <a className="btn btn--secondary" href="/jobs">
-          Go to jobs
-        </a>
-      </section>
     </div>
   );
 }
