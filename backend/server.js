@@ -6,7 +6,6 @@ const path = require("path");
 
 const connectDB = require("./config/db");
 
-
 dotenv.config();
 connectDB();
 
@@ -22,26 +21,24 @@ const companyRoutes = require("./routes/companyRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-
 const authRoutes = require("./routes/authRoutes");
 
-const cors = require("cors");
-
+// CORS Configuration
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://your-vercel-app.vercel.app"
+      "https://placement-cell-self.vercel.app",
     ],
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(uploadDir));
 
 app.use("/api/auth", authRoutes);
-
 app.use("/api/students", studentRoutes);
 app.use("/api/companies", companyRoutes);
 app.use("/api/jobs", jobRoutes);
