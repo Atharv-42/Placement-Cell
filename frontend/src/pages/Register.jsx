@@ -11,6 +11,8 @@ const initialState = {
   role: "student"
 };
 
+const gmailRegex = /^[a-z0-9](?:[a-z0-9.+_-]*[a-z0-9])?@gmail\.com$/;
+
 function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -30,8 +32,19 @@ function Register() {
     setLoading(true);
     setError("");
 
+    const normalizedEmail = formData.email.trim().toLowerCase();
+
+    if (!gmailRegex.test(normalizedEmail)) {
+      setError("Please use a valid Gmail address");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await API.post("/auth/register", formData);
+      const response = await API.post("/auth/register", {
+        ...formData,
+        email: normalizedEmail
+      });
       login({
         token: response.data.token,
         user: response.data.user
@@ -72,9 +85,12 @@ function Register() {
             <input
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder="name@gmail.com"
               value={formData.email}
               onChange={handleChange}
+              pattern="[a-zA-Z0-9]([a-zA-Z0-9.+_-]*[a-zA-Z0-9])?@gmail\.com"
+              title="Enter a valid Gmail address ending in @gmail.com"
+              autoComplete="email"
               required
             />
           </label>

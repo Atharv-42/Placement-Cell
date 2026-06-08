@@ -7,6 +7,7 @@ const Company = require("../models/company");
 
 const JWT_SECRET = process.env.JWT_SECRET || "placement-cell-portal-secret";
 const VALID_ROLES = ["student", "company", "admin"];
+const GMAIL_REGEX = /^[a-z0-9](?:[a-z0-9.+_-]*[a-z0-9])?@gmail\.com$/;
 
 const signToken = (user) =>
   jwt.sign(
@@ -68,6 +69,13 @@ exports.register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Name, email, password, and role are required"
+      });
+    }
+
+    if (!GMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please use a valid Gmail address"
       });
     }
 
