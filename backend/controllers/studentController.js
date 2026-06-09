@@ -149,7 +149,7 @@ exports.updateStudent = async (req, res) => {
     const student = await Student.findByIdAndUpdate(
       req.params.id,
       cleanPayload(buildProfilePayload(req.body)),
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!student) {
@@ -222,7 +222,7 @@ exports.updateMyProfile = async (req, res) => {
         ...payload,
         userId: req.user.id
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
 
     if (user && payload.name) {
@@ -260,7 +260,7 @@ exports.uploadProfilePhoto = async (req, res) => {
       {
         profilePhoto: profilePhotoPayload(req.file)
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
 
     res.json({
@@ -299,7 +299,7 @@ exports.uploadResume = async (req, res) => {
       {
         resume: resumePayload(req.file)
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
 
     res.json({
@@ -357,7 +357,7 @@ exports.deleteResume = async (req, res) => {
     await Student.findOneAndUpdate(
       { userId: req.user.id },
       { $unset: { resume: 1 } },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     res.json({

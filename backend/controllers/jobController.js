@@ -242,7 +242,7 @@ exports.updateJob = async (req, res) => {
     const updatedJob = await Job.findByIdAndUpdate(
       req.params.id,
       buildJobPayload(req.body),
-      { new: true }
+      { returnDocument: "after" }
     );
 
     res.json({

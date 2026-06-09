@@ -19,7 +19,10 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [canResendVerification, setCanResendVerification] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
 
   useEffect(() => {
     if (token && user) {
@@ -31,6 +34,8 @@ function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
+    setCanResendVerification(false);
 
     try {
       const response = await API.post("/auth/login", {
@@ -45,9 +50,27 @@ function Login() {
 
       navigate(roleHome[response.data.user.role] || "/jobs", { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      const nextMessage = err.response?.data?.message || "Login failed";
+      setError(nextMessage);
+      setCanResendVerification(err.response?.status === 403 && nextMessage.toLowerCase().includes("verify"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await API.post("/auth/resend-verification", { email });
+      setMessage(response.data.message || "Verification email sent. Please check your inbox.");
+      setCanResendVerification(false);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not resend verification email");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -106,10 +129,21 @@ function Login() {
             </label>
 
             {error && <div className="alert alert--error">{error}</div>}
+            {message && <div className="alert">{message}</div>}
 
             <button className="btn btn--primary btn--full" type="submit" disabled={loading}>
               {loading ? "Signing in..." : "Login"}
             </button>
+            {canResendVerification && (
+              <button
+                className="btn btn--secondary btn--full"
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending || !email}
+              >
+                {resending ? "Sending verification..." : "Resend verification email"}
+              </button>
+            )}
           </form>
 
           <p className="auth-footer">

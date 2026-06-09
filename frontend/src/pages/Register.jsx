@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/Register.css";
 import API from "../services/api";
-import { useAuth } from "../context/AuthContext";
 
 const initialState = {
   name: "",
@@ -15,10 +14,10 @@ const gmailRegex = /^[a-z0-9](?:[a-z0-9.+_-]*[a-z0-9])?@gmail\.com$/;
 
 function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [formData, setFormData] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setFormData((current) => ({
@@ -31,6 +30,7 @@ function Register() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
 
     const normalizedEmail = formData.email.trim().toLowerCase();
 
@@ -45,13 +45,8 @@ function Register() {
         ...formData,
         email: normalizedEmail
       });
-      login({
-        token: response.data.token,
-        user: response.data.user
-      });
-      navigate(response.data.user.role === "company" ? "/company" : response.data.user.role === "admin" ? "/admin" : "/student", {
-        replace: true
-      });
+      setSuccess(response.data.message || "Registration successful. Please check your email to verify your account.");
+      setFormData(initialState);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
@@ -117,10 +112,16 @@ function Register() {
           </label>
 
           {error && <div className="alert alert--error">{error}</div>}
+          {success && <div className="alert">{success}</div>}
 
           <button type="submit" className="btn btn--primary btn--full" disabled={loading}>
             {loading ? "Creating account..." : "Create account"}
           </button>
+          {success && (
+            <button type="button" className="btn btn--secondary btn--full" onClick={() => navigate("/")}>
+              Go to login
+            </button>
+          )}
         </form>
 
         <p className="auth-footer">

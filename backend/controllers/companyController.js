@@ -100,7 +100,7 @@ exports.updateCompany = async (req, res) => {
     const company = await Company.findByIdAndUpdate(
       req.params.id,
       buildCompanyPayload(req.body),
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!company) {
@@ -171,7 +171,7 @@ exports.updateMyCompany = async (req, res) => {
         ...buildCompanyPayload(req.body),
         userId: req.user.id
       },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
 
     res.json({
