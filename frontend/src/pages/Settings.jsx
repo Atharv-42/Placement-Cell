@@ -5,11 +5,11 @@ import { useAuth } from "../context/AuthContext";
 
 function Settings() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, theme, setTheme } = useAuth();
   const [preferences, setPreferences] = useState({
     emailAlerts: true,
     statusUpdates: true,
-    darkSummary: false
+    compactSummary: false
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -20,6 +20,10 @@ function Settings() {
       ...current,
       [name]: checked
     }));
+  };
+
+  const handleThemeChange = (event) => {
+    setTheme(event.target.checked ? "dark" : "light");
   };
 
   const handleSave = async (event) => {
@@ -55,7 +59,7 @@ function Settings() {
         <div className="toggle-list">
           {[
             ["statusUpdates", "Application status updates"],
-            ["darkSummary", "Compact dashboard summary"]
+            ["compactSummary", "Compact dashboard summary"]
           ].map(([name, label]) => (
             <label key={name} className="toggle-row">
               <div>
@@ -65,6 +69,14 @@ function Settings() {
               <input type="checkbox" name={name} checked={preferences[name]} onChange={handleChange} />
             </label>
           ))}
+
+          <label className="toggle-row">
+            <div>
+              <strong>Dark mode</strong>
+              <span>Use a lower-glare interface across dashboards, forms, and tables.</span>
+            </div>
+            <input type="checkbox" checked={theme === "dark"} onChange={handleThemeChange} />
+          </label>
         </div>
 
         <div className="stacked-actions stacked-actions--inline">

@@ -12,10 +12,26 @@ const readStoredUser = () => {
   }
 };
 
+const getInitialTheme = () => {
+  const storedTheme = localStorage.getItem("theme");
+
+  if (storedTheme === "dark" || storedTheme === "light") {
+    return storedTheme;
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readStoredUser);
   const [token, setToken] = useState(() => localStorage.getItem("token") || "");
   const [loading, setLoading] = useState(Boolean(localStorage.getItem("token")));
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     let active = true;
@@ -82,17 +98,24 @@ export function AuthProvider({ children }) {
 
   const pushNotification = () => {};
 
+  const toggleTheme = () => {
+    setTheme((current) => (current === "dark" ? "light" : "dark"));
+  };
+
   const value = useMemo(
     () => ({
       user,
       token,
       loading,
+      theme,
       login,
       logout,
       pushNotification,
-      setUser
+      setUser,
+      setTheme,
+      toggleTheme
     }),
-    [user, token, loading]
+    [user, token, loading, theme]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

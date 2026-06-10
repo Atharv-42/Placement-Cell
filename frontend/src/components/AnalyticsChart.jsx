@@ -14,6 +14,22 @@ import {
 } from "recharts";
 
 const colors = ["#0f766e", "#2563eb", "#7c3aed", "#ea580c", "#16a34a", "#db2777"];
+const axisProps = {
+  tickLine: false,
+  axisLine: false,
+  tick: { fill: "var(--muted)", fontSize: 12 }
+};
+const tooltipProps = {
+  contentStyle: {
+    background: "var(--surface-raised)",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    color: "var(--text)"
+  },
+  labelStyle: {
+    color: "var(--text-strong)"
+  }
+};
 
 function AnalyticsChart({ title, type = "bar", data = [], dataKey = "total", nameKey = "label", height = 280 }) {
   const hasData = Array.isArray(data) && data.length > 0;
@@ -33,15 +49,15 @@ function AnalyticsChart({ title, type = "bar", data = [], dataKey = "total", nam
           <ResponsiveContainer width="100%" height="100%">
             {type === "line" ? (
               <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" />
-                <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey={dataKey} stroke="#2563eb" strokeWidth={3} dot={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey={nameKey} {...axisProps} />
+                <YAxis {...axisProps} />
+                <Tooltip {...tooltipProps} />
+                <Line type="monotone" dataKey={dataKey} stroke="var(--accent)" strokeWidth={3} dot={false} />
               </LineChart>
             ) : type === "pie" ? (
               <PieChart>
-                <Tooltip />
+                <Tooltip {...tooltipProps} />
                 <Pie data={data} dataKey={dataKey} nameKey={nameKey} innerRadius={60} outerRadius={100} paddingAngle={4}>
                   {data.map((entry, index) => (
                     <Cell key={entry[nameKey] || index} fill={colors[index % colors.length]} />
@@ -50,11 +66,11 @@ function AnalyticsChart({ title, type = "bar", data = [], dataKey = "total", nam
               </PieChart>
             ) : (
               <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.08)" />
-                <XAxis dataKey={nameKey} tickLine={false} axisLine={false} />
-                <YAxis tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Bar dataKey={dataKey} radius={[8, 8, 0, 0]} fill="#0f766e" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey={nameKey} {...axisProps} />
+                <YAxis {...axisProps} />
+                <Tooltip {...tooltipProps} />
+                <Bar dataKey={dataKey} radius={[8, 8, 0, 0]} fill="var(--primary)" />
               </BarChart>
             )}
           </ResponsiveContainer>
