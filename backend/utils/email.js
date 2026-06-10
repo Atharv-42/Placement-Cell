@@ -1,5 +1,18 @@
 const nodemailer = require("nodemailer");
 
+const normalizeList = (value) => {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+};
+
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 const createTransporter = () => {
   const {
     SMTP_HOST,
@@ -16,6 +29,12 @@ const createTransporter = () => {
     SMTP_PASS: !!SMTP_PASS,
   });
 
+  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+    throw new Error(
+      "SMTP email settings are incomplete."
+    );
+  }
+
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT),
@@ -27,50 +46,11 @@ const createTransporter = () => {
   });
 };
 
-const hasSmtpConfig = SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS;
-const missingSmtpSettings = [
-  ["SMTP_HOST", SMTP_HOST],
-  ["SMTP_PORT", SMTP_PORT],
-  ["SMTP_USER", SMTP_USER],
-  ["SMTP_PASS", SMTP_PASS]
-]
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
-
-const createTransporter = () => {
-  if (!hasSmtpConfig) {
-    throw new Error(`SMTP email settings are incomplete. Missing: ${missingSmtpSettings.join(", ")}.`);
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: SMTP_SECURE === "true",
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS
-    }
-  });
-};
-
-const normalizeList = (value) => {
-  if (!value) {
-    return [];
-  }
-
-  return Array.isArray(value) ? value : [value];
-};
-
-const escapeHtml = (value) =>
-  String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
 exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
   const transporter = createTransporter();
+
+  const { MAIL_FROM, SMTP_USER } = process.env;
+
   const safeName = escapeHtml(name);
   const safeVerificationUrl = escapeHtml(verificationUrl);
 
@@ -78,7 +58,12 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
     from: MAIL_FROM || SMTP_USER,
     to,
     subject: "Verify your Placement Cell Portal email",
-    text: `Hi ${name},\n\nPlease verify your email by opening this link:\n${verificationUrl}\n\nThis link expires in 24 hours.`,
+    text: `Hi ${name},
+
+Please verify your email by opening this link:
+${verificationUrl}
+
+This link expires in 24 hours.`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
         <h2>Verify your email</h2>
@@ -86,12 +71,12 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
         <p>Please verify your email address to activate your Placement Cell Portal account.</p>
         <p>
           <a href="${safeVerificationUrl}" style="display: inline-block; padding: 12px 18px; background: #0f766e; color: #ffffff; text-decoration: none; border-radius: 8px;">
-            Verify email
+            Verify Email
           </a>
         </p>
         <p>This link expires in 24 hours.</p>
       </div>
-    `
+    `,
   });
 
   const accepted = normalizeList(info.accepted);
@@ -100,12 +85,16 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
 
   if (rejected.length > 0 || accepted.length === 0) {
     throw new Error(
-      `Verification email was not accepted by SMTP. Accepted: ${accepted.join(", ") || "none"}. Rejected: ${rejected.join(", ") || "none"}.`
+      `Verification email was not accepted by SMTP. Accepted: ${
+        accepted.join(", ") || "none"
+      }. Rejected: ${rejected.join(", ") || "none"}.`
     );
   }
 
   console.log(
-    `Verification email accepted by SMTP for ${accepted.join(", ")}. Message ID: ${info.messageId || "not provided"}${pending.length ? `. Pending: ${pending.join(", ")}` : ""}`
+    `Verification email accepted by SMTP for ${accepted.join(
+      ", "
+    )}. Message ID: ${info.messageId}`
   );
 
   return {
@@ -113,6 +102,6 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
     accepted,
     rejected,
     pending,
-    messageId: info.messageId
+    messageId: info.messageId,
   };
 };
