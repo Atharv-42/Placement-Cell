@@ -1,13 +1,31 @@
 const nodemailer = require("nodemailer");
 
-const {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_SECURE,
-  SMTP_USER,
-  SMTP_PASS,
-  MAIL_FROM
-} = process.env;
+const createTransporter = () => {
+  const {
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_SECURE,
+    SMTP_USER,
+    SMTP_PASS,
+  } = process.env;
+
+  console.log({
+    SMTP_HOST,
+    SMTP_PORT,
+    SMTP_USER,
+    SMTP_PASS: !!SMTP_PASS,
+  });
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT),
+    secure: SMTP_SECURE === "true",
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+};
 
 const hasSmtpConfig = SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS;
 const missingSmtpSettings = [
@@ -35,6 +53,14 @@ const createTransporter = () => {
   });
 };
 
+const normalizeList = (value) => {
+  if (!value) {
+    return [];
+  }
+
+  return Array.isArray(value) ? value : [value];
+};
+
 const escapeHtml = (value) =>
   String(value)
     .replace(/&/g, "&amp;")
@@ -48,7 +74,7 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
   const safeName = escapeHtml(name);
   const safeVerificationUrl = escapeHtml(verificationUrl);
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: MAIL_FROM || SMTP_USER,
     to,
     subject: "Verify your Placement Cell Portal email",
@@ -68,5 +94,25 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
     `
   });
 
-  return { delivered: true };
+  const accepted = normalizeList(info.accepted);
+  const rejected = normalizeList(info.rejected);
+  const pending = normalizeList(info.pending);
+
+  if (rejected.length > 0 || accepted.length === 0) {
+    throw new Error(
+      `Verification email was not accepted by SMTP. Accepted: ${accepted.join(", ") || "none"}. Rejected: ${rejected.join(", ") || "none"}.`
+    );
+  }
+
+  console.log(
+    `Verification email accepted by SMTP for ${accepted.join(", ")}. Message ID: ${info.messageId || "not provided"}${pending.length ? `. Pending: ${pending.join(", ")}` : ""}`
+  );
+
+  return {
+    delivered: true,
+    accepted,
+    rejected,
+    pending,
+    messageId: info.messageId
+  };
 };
