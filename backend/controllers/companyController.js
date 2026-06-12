@@ -23,9 +23,18 @@ const buildCompanyPayload = (body) =>
   });
 
 const ensureCompany = async (user) => {
-  const existing = await Company.findOne({ userId: user._id });
+  const existing = await Company.findOne({
+    $or: [{ userId: user._id }, { email: user.email }]
+  });
 
   if (existing) {
+    existing.userId = user._id;
+    existing.name = user.name;
+    existing.email = user.email;
+    if (typeof existing.active !== "boolean") {
+      existing.active = true;
+    }
+    await existing.save();
     return existing;
   }
 
@@ -39,10 +48,31 @@ const ensureCompany = async (user) => {
 
 exports.createCompany = async (req, res) => {
   try {
-    const company = await Company.create({
-      ...buildCompanyPayload(req.body),
-      userId: req.body.userId || undefined
-    });
+    const payload = buildCompanyPayload(req.body);
+    const lookup = [];
+
+    if (req.body.userId) {
+      lookup.push({ userId: req.body.userId });
+    }
+
+    if (payload.email) {
+      lookup.push({ email: payload.email });
+    }
+
+    const query = lookup.length > 1 ? { $or: lookup } : lookup[0] || { email: payload.email };
+    const company = await Company.findOneAndUpdate(
+      query,
+      {
+        $set: {
+          ...payload,
+          ...(req.body.userId ? { userId: req.body.userId } : {})
+        },
+        $setOnInsert: {
+          active: payload.active ?? true
+        }
+      },
+      { returnDocument: "after", upsert: true, runValidators: true }
+    );
 
     res.status(201).json({
       success: true,

@@ -63,33 +63,51 @@ const getEmailWarningMessage = (error) => {
 
 const ensureProfile = async (user) => {
   if (user.role === "student") {
-    await Student.findOneAndUpdate(
-      { userId: user._id },
-      {
-        $setOnInsert: {
-          userId: user._id,
-          name: user.name,
-          email: user.email,
-          skills: []
-        }
-      },
-      { upsert: true, returnDocument: "after" }
-    );
+    const existingStudent = await Student.findOne({
+      $or: [{ userId: user._id }, { email: user.email }]
+    });
+
+    if (existingStudent) {
+      existingStudent.userId = user._id;
+      existingStudent.name = user.name;
+      existingStudent.email = user.email;
+      if (!Array.isArray(existingStudent.skills)) {
+        existingStudent.skills = [];
+      }
+      await existingStudent.save();
+      return existingStudent;
+    }
+
+    return Student.create({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      skills: []
+    });
   }
 
   if (user.role === "company") {
-    await Company.findOneAndUpdate(
-      { userId: user._id },
-      {
-        $setOnInsert: {
-          userId: user._id,
-          name: user.name,
-          email: user.email,
-          active: true
-        }
-      },
-      { upsert: true, returnDocument: "after" }
-    );
+    const existingCompany = await Company.findOne({
+      $or: [{ userId: user._id }, { email: user.email }]
+    });
+
+    if (existingCompany) {
+      existingCompany.userId = user._id;
+      existingCompany.name = user.name;
+      existingCompany.email = user.email;
+      if (typeof existingCompany.active !== "boolean") {
+        existingCompany.active = true;
+      }
+      await existingCompany.save();
+      return existingCompany;
+    }
+
+    return Company.create({
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      active: true
+    });
   }
 };
 

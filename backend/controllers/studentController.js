@@ -43,9 +43,18 @@ const buildProfilePayload = (body) =>
   });
 
 const ensureStudent = async (user) => {
-  const existing = await Student.findOne({ userId: user._id });
+  const existing = await Student.findOne({
+    $or: [{ userId: user._id }, { email: user.email }]
+  });
 
   if (existing) {
+    existing.userId = user._id;
+    existing.name = user.name;
+    existing.email = user.email;
+    if (!Array.isArray(existing.skills)) {
+      existing.skills = [];
+    }
+    await existing.save();
     return existing;
   }
 
@@ -88,10 +97,31 @@ const safeUnlink = (filePath) => {
 
 exports.createStudent = async (req, res) => {
   try {
-    const student = await Student.create({
-      ...buildProfilePayload(req.body),
-      userId: req.body.userId || undefined
-    });
+    const payload = buildProfilePayload(req.body);
+    const lookup = [];
+
+    if (req.body.userId) {
+      lookup.push({ userId: req.body.userId });
+    }
+
+    if (payload.email) {
+      lookup.push({ email: payload.email });
+    }
+
+    const query = lookup.length > 1 ? { $or: lookup } : lookup[0] || { email: payload.email };
+    const student = await Student.findOneAndUpdate(
+      query,
+      {
+        $set: {
+          ...payload,
+          ...(req.body.userId ? { userId: req.body.userId } : {})
+        },
+        $setOnInsert: {
+          skills: payload.skills || []
+        }
+      },
+      { returnDocument: "after", upsert: true, runValidators: true }
+    );
 
     res.status(201).json({
       success: true,
