@@ -145,7 +145,16 @@ exports.register = async (req, res) => {
       await sendUserVerificationEmail(user, token);
     } catch (emailError) {
       emailWarning = getEmailWarningMessage(emailError);
-      console.error("Verification email send failed during registration:", emailError);
+      console.error("Verification email send failed during registration:", {
+        message: emailError.message,
+        code: emailError.code,
+        responseCode: emailError.responseCode,
+        response: emailError.response,
+        command: emailError.command,
+        errno: emailError.errno,
+        syscall: emailError.syscall,
+        details: emailError.details
+      });
     }
 
     res.status(201).json({
@@ -319,7 +328,16 @@ exports.resendVerification = async (req, res) => {
     try {
       await sendUserVerificationEmail(user, token);
     } catch (emailError) {
-      console.error("Verification email resend failed:", emailError);
+      console.error("Verification email resend failed:", {
+        message: emailError.message,
+        code: emailError.code,
+        responseCode: emailError.responseCode,
+        response: emailError.response,
+        command: emailError.command,
+        errno: emailError.errno,
+        syscall: emailError.syscall,
+        details: emailError.details
+      });
       return res.status(200).json({
         success: true,
         message: "Verification token was updated, but the email could not be sent right now. Please try again shortly."

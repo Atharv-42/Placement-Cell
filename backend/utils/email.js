@@ -13,6 +13,17 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+const summarizeEmailError = (error) => ({
+  name: error?.name,
+  message: error?.message,
+  code: error?.code,
+  command: error?.command,
+  response: error?.response,
+  responseCode: error?.responseCode,
+  errno: error?.errno,
+  syscall: error?.syscall,
+});
+
 const createTransporter = () => {
   const {
     SMTP_HOST,
@@ -65,18 +76,21 @@ exports.sendVerificationEmail = async ({
 
   console.log(`Sending verification email to: ${to}`);
 
-  const info = await transporter.sendMail({
-    from: MAIL_FROM || SMTP_USER,
-    to,
-    subject: "Verify your Placement Cell Portal email",
-    text: `Hi ${name},
+  let info;
+
+  try {
+    info = await transporter.sendMail({
+      from: MAIL_FROM || SMTP_USER,
+      to,
+      subject: "Verify your Placement Cell Portal email",
+      text: `Hi ${name},
 
 Please verify your email by opening this link:
 
 ${verificationUrl}
 
 This link expires in 24 hours.`,
-    html: `
+      html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
         <h2>Verify your Email</h2>
 
@@ -105,18 +119,29 @@ This link expires in 24 hours.`,
         <p>This link expires in 24 hours.</p>
       </div>
     `,
-  });
+    });
+  } catch (error) {
+    error.details = summarizeEmailError(error);
+    throw error;
+  }
 
   const accepted = normalizeList(info.accepted);
   const rejected = normalizeList(info.rejected);
   const pending = normalizeList(info.pending);
 
   if (rejected.length > 0 || accepted.length === 0) {
-    throw new Error(
+    const error = new Error(
       `Verification email was not accepted by SMTP. Accepted: ${
         accepted.join(", ") || "none"
       }. Rejected: ${rejected.join(", ") || "none"}.`
     );
+    error.details = {
+      accepted,
+      rejected,
+      pending,
+      messageId: info.messageId
+    };
+    throw error;
   }
 
   console.log(
