@@ -24,7 +24,7 @@ const summarizeEmailError = (error) => ({
   syscall: error?.syscall,
 });
 
-const createTransporter = () => {
+const createTransporter = (overrides = {}) => {
   const {
     SMTP_HOST,
     SMTP_PORT,
@@ -49,8 +49,11 @@ const createTransporter = () => {
 
   return nodemailer.createTransport({
     host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: SMTP_SECURE === "true",
+    port: Number(overrides.SMTP_PORT || SMTP_PORT),
+    secure:
+      typeof overrides.SMTP_SECURE === "boolean"
+        ? overrides.SMTP_SECURE
+        : SMTP_SECURE === "true",
     family: 4, // Force IPv4
     connectionTimeout: 15000,
     greetingTimeout: 15000,
@@ -62,13 +65,39 @@ const createTransporter = () => {
   });
 };
 
+const isTimeoutLikeError = (error) =>
+  ["ETIMEDOUT", "ESOCKET", "ECONNECTION", "ECONNRESET", "EHOSTUNREACH", "ENETUNREACH"].includes(
+    error?.code
+  ) || /timeout/i.test(error?.message || "");
+
+const sendWithFallback = async (mailOptions) => {
+  const primaryTransporter = createTransporter();
+
+  try {
+    return await primaryTransporter.sendMail(mailOptions);
+  } catch (error) {
+    const { SMTP_HOST, SMTP_PORT, SMTP_SECURE } = process.env;
+    const isGmailSmtp = SMTP_HOST === "smtp.gmail.com";
+    const isPort465 = Number(SMTP_PORT) === 465 || SMTP_SECURE === "true";
+
+    if (isGmailSmtp && isPort465 && isTimeoutLikeError(error)) {
+      console.warn("Primary SMTP connection timed out. Retrying Gmail SMTP on port 587.");
+      const fallbackTransporter = createTransporter({
+        SMTP_PORT: 587,
+        SMTP_SECURE: false
+      });
+      return fallbackTransporter.sendMail(mailOptions);
+    }
+
+    throw error;
+  }
+};
+
 exports.sendVerificationEmail = async ({
   to,
   name,
   verificationUrl,
 }) => {
-  const transporter = createTransporter();
-
   const { MAIL_FROM, SMTP_USER } = process.env;
 
   const safeName = escapeHtml(name);
@@ -79,7 +108,7 @@ exports.sendVerificationEmail = async ({
   let info;
 
   try {
-    info = await transporter.sendMail({
+    info = await sendWithFallback({
       from: MAIL_FROM || SMTP_USER,
       to,
       subject: "Verify your Placement Cell Portal email",
