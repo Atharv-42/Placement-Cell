@@ -22,16 +22,17 @@ const createTransporter = () => {
     SMTP_PASS,
   } = process.env;
 
-  console.log({
+  console.log("SMTP Config:", {
     SMTP_HOST,
     SMTP_PORT,
+    SMTP_SECURE,
     SMTP_USER,
     SMTP_PASS: !!SMTP_PASS,
   });
 
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
     throw new Error(
-      "SMTP email settings are incomplete."
+      "SMTP email settings are incomplete. Please check Render environment variables."
     );
   }
 
@@ -39,6 +40,7 @@ const createTransporter = () => {
     host: SMTP_HOST,
     port: Number(SMTP_PORT),
     secure: SMTP_SECURE === "true",
+    family: 4, // Force IPv4
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
@@ -46,13 +48,19 @@ const createTransporter = () => {
   });
 };
 
-exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
+exports.sendVerificationEmail = async ({
+  to,
+  name,
+  verificationUrl,
+}) => {
   const transporter = createTransporter();
 
   const { MAIL_FROM, SMTP_USER } = process.env;
 
   const safeName = escapeHtml(name);
   const safeVerificationUrl = escapeHtml(verificationUrl);
+
+  console.log(`Sending verification email to: ${to}`);
 
   const info = await transporter.sendMail({
     from: MAIL_FROM || SMTP_USER,
@@ -61,19 +69,36 @@ exports.sendVerificationEmail = async ({ to, name, verificationUrl }) => {
     text: `Hi ${name},
 
 Please verify your email by opening this link:
+
 ${verificationUrl}
 
 This link expires in 24 hours.`,
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #0f172a;">
-        <h2>Verify your email</h2>
+        <h2>Verify your Email</h2>
+
         <p>Hi ${safeName},</p>
-        <p>Please verify your email address to activate your Placement Cell Portal account.</p>
+
         <p>
-          <a href="${safeVerificationUrl}" style="display: inline-block; padding: 12px 18px; background: #0f766e; color: #ffffff; text-decoration: none; border-radius: 8px;">
+          Please verify your email address to activate your Placement Cell Portal account.
+        </p>
+
+        <p>
+          <a
+            href="${safeVerificationUrl}"
+            style="
+              display:inline-block;
+              padding:12px 18px;
+              background:#0f766e;
+              color:#ffffff;
+              text-decoration:none;
+              border-radius:8px;
+            "
+          >
             Verify Email
           </a>
         </p>
+
         <p>This link expires in 24 hours.</p>
       </div>
     `,
