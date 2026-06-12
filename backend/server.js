@@ -15,6 +15,11 @@ console.log("SMTP_PASS:", process.env.SMTP_PASS ? "FOUND" : "MISSING");
 connectDB();
 
 const app = express();
+const allowedOrigins = (process.env.CORS_ORIGINS ||
+  "http://localhost:5173,https://placement-cell-self.vercel.app")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -31,10 +36,7 @@ const authRoutes = require("./routes/authRoutes");
 // CORS Configuration
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://placement-cell-self.vercel.app",
-    ],
+    origin: allowedOrigins,
     credentials: true,
   })
 );

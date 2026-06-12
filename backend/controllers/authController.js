@@ -50,6 +50,15 @@ const sendUserVerificationEmail = async (user, token) => {
   });
 };
 
+const getEmailWarningMessage = (error) => {
+  if (!error) {
+    return "We could not send the verification email right now. You can request a new one from the login page.";
+  }
+
+  const message = error.message || String(error);
+  return `Account created, but the verification email could not be sent right now. ${message}`;
+};
+
 const ensureProfile = async (user) => {
   if (user.role === "student") {
     await Student.findOneAndUpdate(
@@ -130,16 +139,19 @@ exports.register = async (req, res) => {
       emailVerificationExpires: expires
     });
 
+    let emailWarning = null;
+
     try {
       await sendUserVerificationEmail(user, token);
     } catch (emailError) {
-      await User.deleteOne({ _id: user._id });
-      throw emailError;
+      emailWarning = getEmailWarningMessage(emailError);
+      console.error("Verification email send failed during registration:", emailError);
     }
 
     res.status(201).json({
       success: true,
-      message: "Registration successful. Please check your email to verify your account before logging in."
+      message: emailWarning || "Registration successful. Please check your email to verify your account before logging in.",
+      emailWarning
     });
   } catch (error) {
     res.status(500).json({
@@ -304,7 +316,15 @@ exports.resendVerification = async (req, res) => {
     user.emailVerificationExpires = expires;
     await user.save();
 
-    await sendUserVerificationEmail(user, token);
+    try {
+      await sendUserVerificationEmail(user, token);
+    } catch (emailError) {
+      console.error("Verification email resend failed:", emailError);
+      return res.status(200).json({
+        success: true,
+        message: "Verification token was updated, but the email could not be sent right now. Please try again shortly."
+      });
+    }
 
     res.json({
       success: true,

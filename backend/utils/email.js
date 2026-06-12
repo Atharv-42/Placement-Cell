@@ -41,6 +41,9 @@ const createTransporter = () => {
     port: Number(SMTP_PORT),
     secure: SMTP_SECURE === "true",
     family: 4, // Force IPv4
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
