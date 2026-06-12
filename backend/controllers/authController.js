@@ -216,13 +216,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    if (!DISABLE_EMAIL_VERIFICATION && user.isEmailVerified === false) {
-      return res.status(403).json({
-        success: false,
-        message: "Please verify your email before logging in"
-      });
-    }
-
     await ensureProfile(user);
 
     res.status(200).json({
