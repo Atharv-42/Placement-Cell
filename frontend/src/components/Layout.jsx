@@ -6,6 +6,8 @@ import { useAuth } from "../context/AuthContext";
 
 const routeTitles = {
   "/student": "Student Dashboard",
+  "/resume-analyzer": "Resume Analyzer",
+  "/resume-analyzer/results": "Resume Analysis",
   "/company": "Company Dashboard",
   "/admin": "Admin Dashboard",
   "/jobs": "Jobs Board",

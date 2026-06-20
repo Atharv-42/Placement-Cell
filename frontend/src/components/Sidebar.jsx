@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 const roleLinks = {
   student: [
     { to: "/student", label: "Dashboard" },
+    { to: "/resume-analyzer", label: "Resume Analyzer" },
     { to: "/jobs", label: "Jobs" },
     { to: "/applications", label: "Applications" },
     { to: "/profile", label: "Profile" },

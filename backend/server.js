@@ -31,6 +31,7 @@ const companyRoutes = require("./routes/companyRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const resumeAnalyzerRoutes = require("./routes/resumeAnalyzerRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 // CORS Configuration
@@ -51,6 +52,7 @@ app.use("/api/companies", companyRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/resume-analyzer", resumeAnalyzerRoutes);
 
 app.get("/", (req, res) => {
   res.send("Placement Cell Portal API Running");

@@ -11,6 +11,8 @@ import Jobs from "./pages/Jobs";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import ResumeAnalyzer from "./pages/ResumeAnalyzer";
+import ResumeAnalysisResult from "./pages/ResumeAnalysisResult";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -89,6 +91,22 @@ function App() {
             element={
               <ProtectedRoute roles={["student", "company", "admin"]}>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resume-analyzer"
+            element={
+              <ProtectedRoute roles={["student"]}>
+                <ResumeAnalyzer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resume-analyzer/results"
+            element={
+              <ProtectedRoute roles={["student"]}>
+                <ResumeAnalysisResult />
               </ProtectedRoute>
             }
           />

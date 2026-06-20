@@ -3,6 +3,7 @@ import API from "../services/api";
 import LoadingState from "../components/LoadingState";
 import JobCard from "../components/JobCard";
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 import { downloadFile, formatDate } from "../utils/portal";
 
 const initialProfile = {
@@ -152,7 +153,7 @@ function StudentDashboard() {
 
     try {
       setSaving(true);
-      await API.post("/students/me/resume", formData, {
+      await API.post("/resume-analyzer/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data"
         }
@@ -274,6 +275,17 @@ function StudentDashboard() {
             <span>Active jobs</span>
             <strong>{jobs.length}</strong>
           </article>
+        </div>
+
+        <div className="panel panel--link">
+          <div>
+            <p className="eyebrow">Resume analyzer</p>
+            <strong>Check how well your resume matches portal jobs.</strong>
+            <p className="muted">Upload a PDF and review extracted skills, match percentage, and improvement tips.</p>
+          </div>
+          <Link className="btn btn--primary" to="/resume-analyzer">
+            Open analyzer
+          </Link>
         </div>
       </section>
 
