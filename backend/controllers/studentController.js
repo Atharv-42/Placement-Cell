@@ -4,6 +4,7 @@ const path = require("path");
 const Student = require("../models/student");
 const Application = require("../models/application");
 const User = require("../models/user");
+const { getProfileStatus } = require("../utils/studentProfile");
 
 const normalizeSkills = (skills) => {
   if (Array.isArray(skills)) {
@@ -229,10 +230,14 @@ exports.getMyProfile = async (req, res) => {
     }
 
     const student = await ensureStudent(user);
+    const studentData = student.toObject();
 
     res.json({
       success: true,
-      data: student
+      data: {
+        ...studentData,
+        profileStatus: getProfileStatus(studentData)
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -254,6 +259,7 @@ exports.updateMyProfile = async (req, res) => {
       },
       { returnDocument: "after", upsert: true }
     );
+    const studentData = student.toObject();
 
     if (user && payload.name) {
       user.name = payload.name;
@@ -265,7 +271,10 @@ exports.updateMyProfile = async (req, res) => {
 
     res.json({
       success: true,
-      data: student,
+      data: {
+        ...studentData,
+        profileStatus: getProfileStatus(studentData)
+      },
       message: "Profile updated successfully"
     });
   } catch (error) {

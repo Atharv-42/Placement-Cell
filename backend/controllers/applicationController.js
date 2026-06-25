@@ -2,6 +2,7 @@ const Application = require("../models/application");
 const Student = require("../models/student");
 const Job = require("../models/job");
 const Company = require("../models/company");
+const { getProfileStatus } = require("../utils/studentProfile");
 
 const getCompanyForUser = async (userId) => Company.findOne({ userId });
 
@@ -38,6 +39,18 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "This job is currently inactive"
+      });
+    }
+
+    const profileStatus = getProfileStatus(student.toObject());
+
+    if (!profileStatus.complete || !profileStatus.hasResume) {
+      return res.status(422).json({
+        success: false,
+        message: !profileStatus.complete
+          ? "Complete your student profile before applying"
+          : "Upload your resume before applying",
+        data: profileStatus
       });
     }
 
@@ -136,7 +149,10 @@ exports.getCompanyApplications = async (req, res) => {
     }
 
     const applications = await Application.find({ companyId: company._id })
-      .populate("studentId")
+      .populate({
+        path: "studentId",
+        select: "name email phone department skills cgpa passingYear address socialLinks profilePhoto resume"
+      })
       .populate({
         path: "jobId",
         populate: { path: "companyId" }

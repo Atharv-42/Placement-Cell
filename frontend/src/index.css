@@ -743,6 +743,17 @@ textarea {
   margin-top: auto;
 }
 
+.job-card__apply-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.job-card__hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -783,6 +794,11 @@ textarea {
   margin-top: 0.2rem;
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.table-stack {
+  display: grid;
+  gap: 0.16rem;
 }
 
 .data-table {

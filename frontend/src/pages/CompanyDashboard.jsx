@@ -19,6 +19,27 @@ const emptyJob = {
   status: "active"
 };
 
+const getResumeUrl = (resumePath) => {
+  if (!resumePath) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(resumePath)) {
+    return resumePath;
+  }
+
+  const baseUrl = (API.defaults.baseURL || "").replace(/\/api\/?$/, "");
+  return `${baseUrl}${resumePath.startsWith("/") ? "" : "/"}${resumePath}`;
+};
+
+const formatSkills = (skills) => {
+  if (Array.isArray(skills)) {
+    return skills.length > 0 ? skills.join(", ") : "Not shared";
+  }
+
+  return skills || "Not shared";
+};
+
 function CompanyDashboard() {
   const { user } = useAuth();
   const [company, setCompany] = useState(null);
@@ -363,6 +384,7 @@ function CompanyDashboard() {
               <tr>
                 <th>Candidate</th>
                 <th>Job</th>
+                <th>Profile / Resume</th>
                 <th>Status</th>
                 <th>Applied</th>
                 <th>Actions</th>
@@ -371,7 +393,7 @@ function CompanyDashboard() {
             <tbody>
               {visibleApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No students have applied yet.</td>
+                  <td colSpan="6">No students have applied yet.</td>
                 </tr>
               ) : (
                 visibleApplicants.map((application) => (
@@ -381,6 +403,32 @@ function CompanyDashboard() {
                       <span className="table-subtext">{application.studentId?.email || "Email not available"}</span>
                     </td>
                     <td>{application.jobId?.title || "Job"}</td>
+                    <td>
+                      <div className="table-stack">
+                        <span className="table-subtext">
+                          {application.studentId?.department || "Department not shared"}
+                        </span>
+                        <span className="table-subtext">
+                          CGPA {application.studentId?.cgpa ?? "N/A"}
+                        </span>
+                        <span className="table-subtext">{formatSkills(application.studentId?.skills)}</span>
+                        <span className="table-subtext">
+                          {application.studentId?.phone || "Phone not shared"}
+                        </span>
+                        {application.studentId?.resume?.path ? (
+                          <a
+                            className="text-button"
+                            href={getResumeUrl(application.studentId.resume.path)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open resume
+                          </a>
+                        ) : (
+                          <span className="table-subtext">Resume not uploaded</span>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <span className={`status-pill status-pill--${application.status === "Selected" ? "success" : application.status === "Rejected" ? "danger" : application.status === "Shortlisted" ? "warning" : "muted"}`}>
                         {application.status}

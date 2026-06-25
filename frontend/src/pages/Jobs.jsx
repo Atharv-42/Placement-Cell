@@ -5,10 +5,17 @@ import JobCard from "../components/JobCard";
 import { useAuth } from "../context/AuthContext";
 import { downloadFile } from "../utils/portal";
 
+const initialProfileStatus = {
+  complete: false,
+  missingFields: [],
+  hasResume: false
+};
+
 function Jobs() {
   const { user, pushNotification } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [profileStatus, setProfileStatus] = useState(initialProfileStatus);
   const [filters, setFilters] = useState({
     search: "",
     location: "",
@@ -24,13 +31,15 @@ function Jobs() {
     setLoading(true);
 
     try {
-      const [jobsResponse, applicationsResponse] = await Promise.all([
+      const [jobsResponse, profileResponse, applicationsResponse] = await Promise.all([
         API.get("/jobs", { params: nextFilters }),
+        user?.role === "student" ? API.get("/students/me") : Promise.resolve({ data: { data: null } }),
         user?.role === "student" ? API.get("/applications/me") : Promise.resolve({ data: { data: [] } })
       ]);
 
       setJobs(jobsResponse.data.data || []);
-      setApplications(applicationsResponse.data.data || []);
+      setProfileStatus(profileResponse.data?.data?.profileStatus || initialProfileStatus);
+      setApplications(applicationsResponse.data?.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Unable to load jobs");
     } finally {
@@ -90,6 +99,8 @@ function Jobs() {
     return <LoadingState label="Loading jobs board" />;
   }
 
+  const canApplyToJobs = profileStatus.complete && profileStatus.hasResume;
+
   return (
     <div className="dashboard-grid">
       <section className="hero-panel hero-panel--compact">
@@ -120,6 +131,12 @@ function Jobs() {
       </section>
 
       {error && <div className="alert alert--error">{error}</div>}
+
+      {user?.role === "student" && !canApplyToJobs && (
+        <div className="alert">
+          Complete your profile and upload a PDF resume before applying to jobs.
+        </div>
+      )}
 
       <section className="panel">
         {submitting && <p className="muted">Submitting application for the selected job...</p>}
@@ -163,6 +180,7 @@ function Jobs() {
                 key={job._id}
                 job={job}
                 applied={Boolean(application)}
+                applyDisabled={!canApplyToJobs}
                 onApply={user?.role === "student" && !application ? handleApply : undefined}
               />
             );

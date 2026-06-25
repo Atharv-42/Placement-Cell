@@ -20,11 +20,21 @@ const initialProfile = {
   portfolio: ""
 };
 
+const initialProfileStatus = {
+  complete: false,
+  missingFields: [],
+  hasResume: false
+};
+
+const formatFieldLabel = (field) =>
+  field.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^\w/, (letter) => letter.toUpperCase());
+
 function StudentDashboard() {
   const { user, setUser } = useAuth();
   const [profile, setProfile] = useState(initialProfile);
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [profileStatus, setProfileStatus] = useState(initialProfileStatus);
   const [filters, setFilters] = useState({
     search: "",
     location: "",
@@ -47,6 +57,7 @@ function StudentDashboard() {
       ]);
 
       const student = profileResponse.data.data;
+      setProfileStatus(student?.profileStatus || initialProfileStatus);
       setProfile({
         name: student?.name || user?.name || "",
         email: student?.email || user?.email || "",
@@ -123,6 +134,7 @@ function StudentDashboard() {
 
     try {
       const response = await API.put("/students/me", profile);
+      setProfileStatus(response.data.data.profileStatus || initialProfileStatus);
       setUser((current) => ({
         ...current,
         name: response.data.data.name,
@@ -247,6 +259,8 @@ function StudentDashboard() {
     return <LoadingState label="Loading student dashboard" />;
   }
 
+  const canApplyToJobs = profileStatus.complete && profileStatus.hasResume;
+
   return (
     <div className="dashboard-grid">
       <section className="hero-panel">
@@ -288,6 +302,22 @@ function StudentDashboard() {
           </Link>
         </div>
       </section>
+
+      {!canApplyToJobs && (
+        <div className="alert">
+          Complete your profile and upload a PDF resume before applying to jobs.
+          <div className="chip-cloud" style={{ marginTop: "0.8rem" }}>
+            {profileStatus.missingFields.map((field) => (
+              <span key={field} className="chip-cloud__item chip-cloud__item--missing">
+                Missing {formatFieldLabel(field)}
+              </span>
+            ))}
+            {!profileStatus.hasResume && (
+              <span className="chip-cloud__item chip-cloud__item--missing">Resume not uploaded</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {message && <div className="alert">{message}</div>}
 
@@ -476,6 +506,7 @@ function StudentDashboard() {
                   key={job._id}
                   job={job}
                   applied={Boolean(application)}
+                  applyDisabled={!canApplyToJobs}
                   onApply={application ? undefined : handleApply}
                 />
               );

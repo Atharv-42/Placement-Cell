@@ -15,6 +15,7 @@ const formatPackage = (job) => {
 function JobCard({
   job,
   applied = false,
+  applyDisabled = false,
   onApply,
   onEdit,
   onDelete,
@@ -63,9 +64,17 @@ function JobCard({
 
       <div className="job-card__actions">
         {onApply && (
-          <button type="button" className="btn btn--primary" onClick={() => onApply(job)}>
-            {applied ? "Applied" : "Apply"}
-          </button>
+          <div className="job-card__apply-group">
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => onApply(job)}
+              disabled={applied || applyDisabled}
+            >
+              {applied ? "Applied" : applyDisabled ? "Complete profile first" : "Apply"}
+            </button>
+            {applyDisabled && !applied && <span className="job-card__hint">Update your profile and upload a resume first.</span>}
+          </div>
         )}
         {onSelect && (
           <button type="button" className="btn btn--secondary" onClick={() => onSelect(job)}>
