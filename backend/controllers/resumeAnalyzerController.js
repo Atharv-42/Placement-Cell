@@ -4,7 +4,8 @@ const path = require("path");
 const Job = require("../models/job");
 const Student = require("../models/student");
 const ResumeAnalysis = require("../models/resumeAnalysis");
-const { analyzeResume } = require("../utils/resumeAnalyzer");
+const { extractResumeText } = require("../services/resumeParserService");
+const { analyzeResumeWithAI } = require("../services/aiResumeAnalyzerService");
 
 const resolveStoredPath = (filePath) => {
   if (!filePath) {
@@ -45,24 +46,29 @@ const ensureStudentRecord = async (user) => {
   return student;
 };
 
-const normalizeAnalysis = (analysis, student, file) => ({
-  resumeFile: file ? buildResumePayload(file) : student.resume,
-  extractedText: analysis.extractedText,
-  extractedSkills: analysis.extractedSkills,
-  requiredSkills: analysis.requiredSkills,
-  missingSkills: analysis.missingSkills,
-  matchPercentage: analysis.matchPercentage,
-  suggestions: analysis.suggestions,
-  jobMatches: analysis.jobMatches,
-  analyzedAt: new Date()
-});
+const buildJobDescription = (job) => {
+  if (!job) {
+    return "";
+  }
+
+  return [
+    `Role: ${job.title || job.role || ""}`,
+    `Company: ${job.companyName || ""}`,
+    `Location: ${job.location || ""}`,
+    `Description: ${job.description || ""}`,
+    `Eligibility: ${job.eligibility || ""}`,
+    `Required skills: ${(job.skills || []).join(", ")}`
+  ]
+    .filter((line) => line.replace(/^[^:]+:\s*/, "").trim())
+    .join("\n");
+};
 
 exports.uploadResume = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Resume PDF is required"
+        message: "Resume PDF or DOCX is required"
       });
     }
 
@@ -114,42 +120,78 @@ exports.analyzeResume = async (req, res) => {
     if (!filePath || !fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
-        message: "Upload a PDF resume before analyzing it"
+        message: "Upload a PDF or DOCX resume before analyzing it"
       });
     }
 
-    const jobs = await Job.find({ status: "active" }).sort({ createdAt: -1 });
-    const analysis = await analyzeResume({
-      filePath,
-      jobs
+    const selectedJob = req.body.jobId ? await Job.findById(req.body.jobId) : null;
+    const jobDescription = selectedJob
+      ? buildJobDescription(selectedJob)
+      : (req.body.jobDescription || "").trim();
+
+    if (req.body.jobId && !selectedJob) {
+      return res.status(404).json({
+        success: false,
+        message: "Selected job was not found"
+      });
+    }
+
+    if (!jobDescription) {
+      return res.status(400).json({
+        success: false,
+        message: "Select a job or paste a job description before analyzing"
+      });
+    }
+
+    const extractedText = await extractResumeText(filePath);
+
+    if (!extractedText) {
+      return res.status(400).json({
+        success: false,
+        message: "Could not extract readable text from this resume"
+      });
+    }
+
+    const aiAnalysis = await analyzeResumeWithAI({
+      resumeText: extractedText,
+      jobDescription
     });
 
-    const storedAnalysis = await ResumeAnalysis.findOneAndUpdate(
-      { studentId: student._id },
-      {
-        $set: normalizeAnalysis(analysis, student, req.file ? req.file : null),
-        $setOnInsert: {
-          studentId: student._id
-        }
-      },
-      {
-        upsert: true,
-        returnDocument: "after",
-        runValidators: true
-      }
-    );
+    const storedAnalysis = await ResumeAnalysis.create({
+      studentId: student._id,
+      jobId: selectedJob?._id || null,
+      jobTitle: selectedJob?.title || req.body.jobTitle || "Custom Job Description",
+      companyName: selectedJob?.companyName || "",
+      jobDescription,
+      resumeFile: req.file ? buildResumePayload(req.file) : student.resume,
+      extractedText,
+      atsScore: aiAnalysis.atsScore,
+      candidate: aiAnalysis.candidate,
+      sections: aiAnalysis.sections,
+      matchedSkills: aiAnalysis.matchedSkills,
+      missingSkills: aiAnalysis.missingSkills,
+      sectionFeedback: aiAnalysis.sectionFeedback,
+      atsImprovements: aiAnalysis.atsImprovements,
+      weakBullets: aiAnalysis.weakBullets,
+      recommendedKeywords: aiAnalysis.recommendedKeywords,
+      interviewQuestions: aiAnalysis.interviewQuestions,
+      extractedSkills: aiAnalysis.sections.skills,
+      requiredSkills: [...new Set([...aiAnalysis.matchedSkills, ...aiAnalysis.missingSkills])],
+      matchPercentage: aiAnalysis.atsScore,
+      suggestions: aiAnalysis.atsImprovements,
+      analyzedAt: new Date()
+    });
 
     res.status(200).json({
       success: true,
       data: {
         ...storedAnalysis.toObject(),
         resumeFile: storedAnalysis.resumeFile || resumePayload,
-        jobCount: jobs.length
+        jobCount: selectedJob ? 1 : 0
       },
-      message: "Resume analyzed successfully"
+      message: "AI resume analysis completed successfully"
     });
   } catch (error) {
-    safeUnlink(req.file?.path);
     res.status(500).json({
       success: false,
       message: error.message

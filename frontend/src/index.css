@@ -965,6 +965,12 @@ textarea {
   line-height: 1.55;
 }
 
+.analysis-history-button {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+}
+
 .match-overview {
   display: grid;
   gap: 1rem;

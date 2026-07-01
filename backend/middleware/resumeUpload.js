@@ -14,21 +14,25 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const safeName = path.basename(file.originalname, path.extname(file.originalname))
+    const extension = path.extname(file.originalname).toLowerCase();
+    const safeName = path.basename(file.originalname, extension)
       .replace(/[^a-zA-Z0-9_-]/g, "_")
       .slice(0, 50) || "resume";
     const uniqueSuffix = `${Date.now()}-${crypto.randomUUID()}`;
-    cb(null, `${safeName}-${uniqueSuffix}.pdf`);
+    cb(null, `${safeName}-${uniqueSuffix}${extension}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  const isPdf =
-    file.mimetype === "application/pdf" ||
-    path.extname(file.originalname).toLowerCase() === ".pdf";
+  const extension = path.extname(file.originalname).toLowerCase();
+  const allowedMimeTypes = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ];
+  const allowedExtensions = [".pdf", ".docx"];
 
-  if (!isPdf) {
-    return cb(new Error("Only PDF files are allowed"));
+  if (!allowedMimeTypes.includes(file.mimetype) && !allowedExtensions.includes(extension)) {
+    return cb(new Error("Only PDF and DOCX files are allowed"));
   }
 
   cb(null, true);
